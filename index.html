@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RBN · Red Interdisciplinaria de Investigaciones en la BN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--tan:#FBF9ED;--k:#000;--mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;--sans:'Archivo','Helvetica Neue',Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--tan);color:#000;font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body.intro{overflow-x:hidden}
+body.entered{overflow:hidden}
+
+/* ---------- el logo 3D (la caja RiiBN) ---------- */
+.rbn{--k:1;--w:calc(311.06px * var(--k));--h:calc(173.86px * var(--k));--d:calc(148.36px * var(--k));--line:1.6px;--ink:#000;position:relative;width:var(--w);height:var(--h);transform-style:preserve-3d;flex:none}
+.rbn>div{position:absolute;left:50%;top:50%;transform-style:preserve-3d;backface-visibility:visible}
+.rbn .f{border:var(--line) solid var(--ink);box-sizing:border-box}
+.rbn .f svg{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;fill:var(--ink)}
+.rbn .wF,.rbn .wB{width:var(--w);height:var(--h);margin:calc(var(--h)/-2) 0 0 calc(var(--w)/-2)}
+.rbn .wL,.rbn .wR{width:var(--d);height:var(--h);margin:calc(var(--h)/-2) 0 0 calc(var(--d)/-2)}
+.rbn .wT,.rbn .wD{width:var(--w);height:var(--d);margin:calc(var(--d)/-2) 0 0 calc(var(--w)/-2)}
+.rbn .wF{transform:translateZ(calc(var(--d)/2))}
+.rbn .wB{transform:translateZ(calc(var(--d)/-2))}
+.rbn .wR{transform:rotateY(90deg) translateZ(calc(var(--w)/2))}
+.rbn .wL{transform:rotateY(90deg) translateZ(calc(var(--w)/-2))}
+.rbn .wT{transform:rotateX(90deg) translateZ(calc(var(--h)/2))}
+.rbn .wD{transform:rotateX(90deg) translateZ(calc(var(--h)/-2))}
+
+/* ---------- intro ---------- */
+#intro{position:relative;height:128vh}
+#intro.quick{height:100vh}
+#intro.short{height:128vh}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:10}
+.lw{perspective:var(--persp,1400px);display:flex;align-items:center;justify-content:center}
+#stage .rbn{-webkit-font-smoothing:antialiased}
+#hint{position:fixed;left:50%;bottom:36px;transform:translateX(-50%);font:500 11px/1 var(--mono);letter-spacing:.14em;color:#000;display:flex;flex-direction:column;align-items:center;gap:12px;z-index:11;transition:opacity .25s}
+#hint i{width:1.5px;height:34px;background:#000;display:block;transform-origin:top;animation:drip 1.6s cubic-bezier(.6,0,.3,1) infinite}
+@keyframes drip{0%{transform:scaleY(0)}55%{transform:scaleY(1);transform-origin:top}56%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+@media (prefers-reduced-motion:reduce){#hint i{animation:none}}
+
+/* ---------- home ---------- */
+#home{position:fixed;inset:0;background:var(--tan);opacity:0;pointer-events:none}
+body.entered #home{opacity:1;pointer-events:auto}
+body.entered #intro,body.entered #hint{display:none}
+header{position:absolute;left:0;right:0;top:0;height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1.5px solid #000}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none;color:#000}
+#slot{width:58px;height:44px;display:flex;align-items:center;justify-content:center;visibility:hidden}
+body.entered #slot{visibility:visible}
+.brand span{font:500 11px/1.3 var(--mono);letter-spacing:.08em}
+nav a{font:500 16px/1 var(--sans);color:#000;text-decoration:none;padding:12px 16px;border:1.5px solid #000;background:#fff;display:inline-block}
+nav a:hover{background:#000;color:#fff}
+#prov{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;font:500 22px/1.2 var(--sans);text-align:center;white-space:nowrap}
+#prov span{font:500 13px/1 var(--mono);letter-spacing:.06em;color:#77736a;display:block;margin-top:10px}
+#again{position:absolute;left:28px;bottom:22px;font:500 10px/1 var(--mono);letter-spacing:.1em;color:#77736a;background:none;border:0;padding:0;cursor:pointer}
+#again:hover{color:#000}
+</style>
+</head>
+<body class="intro">
+
+<div id="intro"></div>
+<div id="stage"></div>
+<div id="hint" aria-label="Deslizá para entrar"><i></i></div>
+
+<main id="home" aria-label="Inicio">
+  <header>
+    <a class="brand" href="./" aria-label="RBN, inicio"><div id="slot"></div><span>Red Interdisciplinaria<br>de Investigaciones en la BN</span></a>
+    <nav><a href="mesa-de-trabajo.html">Mesa de trabajo</a></nav>
+  </header>
+  <p id="prov">Home de la interfaz <span>(provisorio)</span></p>
+  <button id="again">VER LA ENTRADA DE NUEVO</button>
+</main>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+/* la caja RiiBN: R en una pared, B adelante, N a la derecha, las "ii" acostadas en el piso */
+// el logo RiiBN de Turntablr: las letras de tu SVG, desplegadas sobre las paredes de una caja 3D
+const LOGO_INNER = `<div class="f wF"></div><div class="f wR"></div><div class="f wT"></div><div class="f wB"><svg viewBox="0 0 311.06 173.86" preserveAspectRatio="none"><g transform="matrix(1.45402 -0.37418 0.01391 1.06962 -157.063 40.419)"><path d="M109.98,5.95l48.23,16.58c26.87,9.24,37.14,32.18,37.19,52.24.04,17.44-6.62,26.43-14.15,28.56,7.55,6.58,17.48,21.09,17.54,41.5.07,26.63-14.97,41.2-38.76,32.66l-50.16-18,.11-153.55ZM155.52,82.25c11.43,4,16.14-1.47,16.13-12.3s-6.21-19.26-15.47-22.47l-22.82-7.9v34.92s22.16,7.75,22.16,7.75ZM133.37,142.1l21.68,7.73c13.03,4.64,18.93-.83,18.91-14.89-.02-12.48-5.84-22.49-19.08-27.16l-21.51-7.58v41.9Z"/><path d="M217.91,198.27l-.52-155.39,30.15,10.37c14.29,39.75,40.89,112.22,46.25,131.18l.31.11c-1.39-16.84-1.54-44.06-1.7-69.73l-.29-46.24,22.35,7.69,1.1,157.05-29.15-10.46c-12.44-35.1-41.82-118.01-47.49-137.9l-.31-.11c.87,13.87,1.28,45.93,1.4,73.86l.2,47.57-22.31-8.01Z"/></g></svg></div><div class="f wL"><svg viewBox="0 0 148.36 173.86" preserveAspectRatio="none"><g transform="matrix(1.37341 0.32407 -0.00000 1.04526 -0.000 -35.006)"><path d="M32.01,71.23l-.06,28.86-27.41,8.94V36.45s57.12-18.06,57.12-18.06c28.02-8.86,42.94-4.94,42.85,6.19-.08,9.65-9.42,17.85-18.66,22.95,6.31-.72,15.8-.08,15.7,12.75l-.03,3.53c-.04,4.81,0,10.26,1.71,13.03l-26.07,8.5c-2.23-2.38-2.62-7.61-2.58-15.23v-1.05c.05-7.86-3.47-10.44-24.18-3.76l-18.38,5.92ZM32.04,58.78l23.44-7.51c15.23-4.88,21.1-10,21.14-16.03.03-5.87-6.77-6.99-20.39-2.66l-24.14,7.67-.04,18.53Z"/></g></svg></div><div class="f wD"><svg viewBox="0 0 311.06 148.36" preserveAspectRatio="none"><g transform="matrix(0.73580 0.68905 2.07141 -1.98289 -413.909 396.221)"><path d="M17.53,199.9l30.1-10.8,35.02,12.25-30.23,10.67-34.89-12.11ZM75.35,219.97l30.32-10.59,138.37,48.38-30.83,10.08-137.85-47.87Z"/><path d="M75.03,179.26l30.94-11.11,35.28,12.5-31.08,10.97-35.15-12.36ZM133.27,199.75l31.17-10.88,139.34,49.36-31.68,10.36-138.82-48.84Z"/></g></svg></div>`;
+function makeLogo(scale) {
+  const el = document.createElement('div');
+  el.className = 'rbn';
+  el.style.setProperty('--k', scale * 360 / 311.06);
+  el.style.setProperty('--line', Math.max(.8, 1.6 * scale * 1.15) + 'px');
+  el.innerHTML = LOGO_INNER;
+  return el;
+}
+
+// pose de reposo: la misma vista que el logo
+const REST = { x: -19.23, y: -46.73 };   // la pose del logo (Turntablr: gira solo sobre el eje vertical)
+const BIG = window.innerWidth < 600 ? .7 : 1.14, SMALL = .15;
+function wrap(logo, scale) {
+  const w = document.createElement('div'); w.className = 'lw';
+  w.style.setProperty('--persp', 9000 * scale + 'px');   // misma perspectiva a escala: grande y chico se ven idénticos
+  w.appendChild(logo); return w;
+}
+function pose(el, p) { poseAngle(el, 360 * p); }
+function poseAngle(el, deg) {
+  // una vuelta hacia la derecha, siempre con la misma inclinación
+  el.style.transform = `rotateX(${REST.x}deg) rotateY(${REST.y - deg}deg)`;
+}
+
+const stage = $('#stage'), hint = $('#hint'), intro = $('#intro');
+const big = makeLogo(BIG), bigW = wrap(big, BIG);
+stage.appendChild(bigW);
+const small = makeLogo(SMALL);
+$('#slot').appendChild(wrap(small, SMALL));
+pose(small, 0); pose(big, 0);
+
+const SEEN = 'rbn-entrada-vista';
+const qs = new URLSearchParams(location.search);
+let seen = false;
+try { seen = localStorage.getItem(SEEN) === '1'; } catch (_) {}
+if (qs.has('intro')) seen = false;
+
+let cur = 0, target = 0, done = false;
+const TH = .09;   // hasta acá lo girás vos (cuando ya se ve la R de frente); después sigue solo
+const lineOf = sc => Math.max(.8, 1.6 * sc * 1.15);
+const LINE_BIG = lineOf(BIG), LINE_SMALL = lineOf(SMALL);
+function render(spin, fly) {
+  // spin 0→1: la vuelta, siguiendo tu scroll · fly 0→1: ya quieto, viaja solo a la esquina
+  pose(big, spin);
+  const f = ease(fly);
+  const s = $('#slot').getBoundingClientRect();
+  const dx = (s.left + s.width / 2 - innerWidth / 2) * f, dy = (s.top + s.height / 2 - innerHeight / 2) * f;
+  const k = 1 + (SMALL / BIG - 1) * f;
+  bigW.style.transform = `translate(${dx}px,${dy}px) scale(${k})`;
+  // el grosor de la línea en pantalla pasa suave del grande al chico: al llegar es idéntico al del header
+  const onScreen = LINE_BIG + (LINE_SMALL - LINE_BIG) * f;
+  big.style.setProperty('--line', onScreen / k + 'px');
+  hint.style.opacity = String(clamp(1 - spin * 8, 0, 1));
+  $('#home').style.opacity = String(clamp((fly - .45) / .55, 0, 1));
+}
+let flying = false;
+function flyAway() {
+  // terminó la vuelta: no se puede seguir deslizando, el logo se va solo a su lugar
+  if (flying) return; flying = true;
+  document.body.style.overflow = 'hidden';
+  const t0 = performance.now(), dur = 850;
+  const step = now => {
+    const t = clamp((now - t0) / dur, 0, 1);
+    render(1, t);
+    if (t < 1) requestAnimationFrame(step); else enter();
+  };
+  requestAnimationFrame(step);
+}
+function enter() {
+  if (done) return;
+  done = true;
+  document.body.classList.remove('intro'); document.body.classList.add('entered');
+  stage.style.display = 'none';
+  $('#home').style.opacity = '';
+  try { localStorage.setItem(SEEN, '1'); } catch (_) {}
+  window.scrollTo(0, 0);
+}
+
+// el giro sigue al scroll, más rápido o más lento según cómo deslices
+const progress = () => clamp(scrollY / (intro.offsetHeight - innerHeight), 0, 1);
+addEventListener('scroll', () => { if (!flying && !done && !spinning) target = progress() * TH; }, { passive: true });
+function loop() {
+  if (done || flying) return;
+  cur += (target - cur) * .14;
+  if (Math.abs(target - cur) < .0005) cur = target;
+  render(cur, 0);
+  if (cur >= TH * .985) return autoSpin();
+  requestAnimationFrame(loop);
+}
+let spinning = false;
+function autoSpin() {
+  // ya arrancaste: el logo termina la vuelta solo, suave, y después se va a la esquina
+  if (spinning) return; spinning = true; flying = true;
+  document.body.style.overflow = 'hidden';
+  const from = cur, t0 = performance.now(), dur = 1500;
+  const out = t => 1 - Math.pow(1 - t, 3);
+  const step = now => {
+    const t = clamp((now - t0) / dur, 0, 1);
+    render(from + (1 - from) * out(t), 0);
+    if (t < 1) requestAnimationFrame(step); else { flying = false; flyAway(); }
+  };
+  requestAnimationFrame(step);
+}
+function startIntro(short) {
+  // arranca (o vuelve a arrancar) la entrada sin recargar la página
+  done = false; flying = false; spinning = false; cur = 0; target = 0;
+  big.style.setProperty('--line', LINE_BIG + 'px');
+  document.body.classList.remove('entered'); document.body.classList.add('intro');
+  document.body.style.overflow = '';
+  intro.classList.remove('quick'); intro.classList.toggle('short', !!short);
+  stage.style.display = ''; hint.style.display = ''; hint.style.opacity = '1';
+  $('#home').style.opacity = '0';
+  window.scrollTo(0, 0);
+  render(0, 0);
+  requestAnimationFrame(loop);
+}
+history.scrollRestoration = 'manual';
+if (qs.has('home')) {
+  // volver desde la Mesa con el logo: directo al home
+  intro.classList.add('quick'); hint.style.display = 'none'; enter();
+} else {
+  // cada vez que entrás o recargás la página: la entrada, girada por vos.
+  // si ya la conocés, el recorrido es más corto
+  startIntro(seen);
+}
+// el parámetro se borra de la dirección: al recargar vuelve a aparecer la entrada
+if (location.search) history.replaceState(null, '', location.pathname + location.hash);
+
+
+// al pasar el mouse por el logo: gira despacio sobre su eje, como flotando, mientras dure el hover.
+// al salir, frena suave y vuelve a la pose del logo.
+function floatOnHover(trigger, el, poseAt) {
+  // mientras hay hover: gira despacio, como flotando.
+  // al salir: si pasó la mitad de la vuelta (más del 50%), la termina; si no, vuelve para atrás a su pose. Rápido.
+  let a = 0, v = 0, hovering = false, raf = null, last = 0, back = null;
+  const MAX = 55;                                    // grados por segundo
+  const ez = t => 1 - Math.pow(1 - t, 3);
+  const tick = now => {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (hovering) {
+      back = null;
+      v += (MAX - v) * Math.min(1, dt * 3); a += v * dt;
+    } else {
+      if (!back) {
+        const turns = Math.floor(a / 360), frac = a / 360 - turns;
+        const goal = (frac > .5 ? turns + 1 : turns) * 360;
+        back = { from: a, goal, t0: now, dur: Math.min(520, 220 + Math.abs(goal - a) * 2.2) };
+      }
+      const t = Math.min(1, (now - back.t0) / back.dur);
+      a = back.from + (back.goal - back.from) * ez(t);
+      if (t >= 1) { a = 0; v = 0; back = null; poseAt(el, 0); raf = null; return; }
+    }
+    poseAt(el, a);
+    raf = requestAnimationFrame(tick);
+  };
+  const go = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } };
+  trigger.addEventListener('mouseenter', () => { hovering = true; back = null; v = 0; go(); });
+  trigger.addEventListener('mouseleave', () => { hovering = false; back = null; go(); });
+}
+floatOnHover($('.brand'), small, poseAngle);
+// en el home, tocar el logo te deja en el home (no vuelve a mostrar la entrada)
+$('.brand').addEventListener('click', e => { if (document.body.classList.contains('entered')) e.preventDefault(); });
+
+addEventListener('resize', () => { if (!done && !flying) render(cur, 0); });
+$('#again').addEventListener('click', () => {
+  // vuelve a mostrar la entrada completa, sin cambiar de página (así no hay 404)
+  try { localStorage.removeItem(SEEN); } catch (_) {}
+  startIntro(false);
+});
+})();
+</script>
+</body>
+</html>

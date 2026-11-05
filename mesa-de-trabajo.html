@@ -2361,10 +2361,17 @@ function toast(msg) {
 }
 
 /* ================= arranque ================= */
-if (!load()) { const r = sRect(); view = { x: Math.round(r.width / 2), y: Math.round(r.height / 2 - 40), z: 1 }; }
+const fresh0 = !load();
+if (fresh0) { const r = sRect(); view = { x: Math.round(r.width / 2), y: Math.round(r.height / 2 - 40), z: 1 }; }
 rebuildAll();
 applyView();
 paintTools();
+if (fresh0) {
+  // la Mesa te propone empezar por una pregunta: ya está puesta y lista para escribir (se edita o se borra como cualquier otra)
+  const q = createNode('pregunta');
+  placeAtCenter(q); selectNode(q.id);
+  requestAnimationFrame(() => { startMain(q, { fresh: true }); queueEdges(); scheduleSave(); });
+}
 window.addEventListener('resize', () => { layoutChrome(); positionOverlays(); });
 // el foco de un texto nunca debe correr la pantalla (pasa en celular)
 [stage, $('#app'), document.scrollingElement].forEach(el => el && el.addEventListener('scroll', () => { el.scrollLeft = 0; el.scrollTop = 0; }));

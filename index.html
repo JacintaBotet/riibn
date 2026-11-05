@@ -30,9 +30,9 @@ body.entered{overflow:hidden}
 .rbn .wD{transform:rotateX(90deg) translateZ(calc(var(--h)/-2))}
 
 /* ---------- intro ---------- */
-#intro{position:relative;height:128vh}
+#intro{position:relative;height:112vh}
 #intro.quick{height:100vh}
-#intro.short{height:128vh}
+#intro.short{height:112vh}
 #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:10}
 .lw{perspective:var(--persp,1400px);display:flex;align-items:center;justify-content:center}
 #stage .rbn{-webkit-font-smoothing:antialiased}
@@ -52,9 +52,14 @@ body.entered #slot{visibility:visible}
 .brand span{font:500 11px/1.3 var(--mono);letter-spacing:.08em}
 nav a{font:500 16px/1 var(--sans);color:#000;text-decoration:none;padding:12px 16px;border:1.5px solid #000;background:#fff;display:inline-block}
 nav a:hover{background:#000;color:#fff}
-#prov{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;font:500 22px/1.2 var(--sans);text-align:center;white-space:nowrap}
-#prov span{font:500 13px/1 var(--mono);letter-spacing:.06em;color:#77736a;display:block;margin-top:10px}
-#again{position:absolute;left:28px;bottom:22px;font:500 10px/1 var(--mono);letter-spacing:.1em;color:#77736a;background:none;border:0;padding:0;cursor:pointer}
+/* feed tipo Cosmos: se expande para todos lados */
+#feed{position:absolute;left:0;right:0;top:77.5px;bottom:0;overflow:hidden;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+#feed.drag{cursor:grabbing}
+#feed .t{position:absolute;left:0;top:0;background:#d6d3ca;animation:tin .45s ease-out both;will-change:transform}
+#feed .t:hover{background:#c9c6bc}
+@keyframes tin{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){#feed .t{animation:none}}
+#again{position:absolute;z-index:2;left:22px;bottom:16px;font:500 10px/1 var(--mono);letter-spacing:.1em;color:#77736a;background:var(--tan);border:0;padding:6px;cursor:pointer}
 #again:hover{color:#000}
 </style>
 </head>
@@ -69,7 +74,7 @@ nav a:hover{background:#000;color:#fff}
     <a class="brand" href="./" aria-label="RBN, inicio"><div id="slot"></div><span>Red Interdisciplinaria<br>de Investigaciones en la BN</span></a>
     <nav><a href="mesa-de-trabajo.html">Mesa de trabajo</a></nav>
   </header>
-  <p id="prov">Home de la interfaz <span>(provisorio)</span></p>
+  <div id="feed" aria-label="Feed de investigaciones (provisorio)"></div>
   <button id="again">VER LA ENTRADA DE NUEVO</button>
 </main>
 
@@ -120,7 +125,7 @@ try { seen = localStorage.getItem(SEEN) === '1'; } catch (_) {}
 if (qs.has('intro')) seen = false;
 
 let cur = 0, target = 0, done = false;
-const TH = .09;   // hasta acá lo girás vos (cuando ya se ve la R de frente); después sigue solo
+const TH = .06;   // un mini scroll: gira apenas y enseguida sigue solo
 const lineOf = sc => Math.max(.8, 1.6 * sc * 1.15);
 const LINE_BIG = lineOf(BIG), LINE_SMALL = lineOf(SMALL);
 function render(spin, fly) {
@@ -162,7 +167,14 @@ function enter() {
 
 // el giro sigue al scroll, más rápido o más lento según cómo deslices
 const progress = () => clamp(scrollY / (intro.offsetHeight - innerHeight), 0, 1);
-addEventListener('scroll', () => { if (!flying && !done && !spinning) target = progress() * TH; }, { passive: true });
+addEventListener('scroll', () => { if (!flying && !done && !spinning) { target = progress() * TH; if (scrollY > 2) autoSpin(); } }, { passive: true });
+// un toque sutil en el pad, la rueda o la pantalla ya alcanza para que arranque
+const kick = () => { if (!done && !spinning && document.body.classList.contains('intro')) autoSpin(); };
+addEventListener('wheel', e => { if (e.deltaY > 1) kick(); }, { passive: true });
+let ty = null;
+addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, { passive: true });
+addEventListener('touchmove', e => { if (ty != null && ty - e.touches[0].clientY > 6) kick(); }, { passive: true });
+addEventListener('keydown', e => { if (['ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) kick(); });
 function loop() {
   if (done || flying) return;
   cur += (target - cur) * .14;
@@ -173,15 +185,16 @@ function loop() {
 }
 let spinning = false;
 function autoSpin() {
-  // ya arrancaste: el logo termina la vuelta solo, suave, y después se va a la esquina
+  // apenas arrancaste: termina la vuelta solo y, sin frenar, se va directo a la esquina
   if (spinning) return; spinning = true; flying = true;
   document.body.style.overflow = 'hidden';
-  const from = cur, t0 = performance.now(), dur = 1500;
+  const from = cur, t0 = performance.now(), dur = 1750;
   const out = t => 1 - Math.pow(1 - t, 3);
   const step = now => {
     const t = clamp((now - t0) / dur, 0, 1);
-    render(from + (1 - from) * out(t), 0);
-    if (t < 1) requestAnimationFrame(step); else { flying = false; flyAway(); }
+    const sp = clamp(t / .7, 0, 1), fl = clamp((t - .38) / .62, 0, 1);
+    render(from + (1 - from) * out(sp), fl);
+    if (t < 1) requestAnimationFrame(step); else enter();
   };
   requestAnimationFrame(step);
 }
@@ -251,6 +264,76 @@ $('#again').addEventListener('click', () => {
   try { localStorage.removeItem(SEEN); } catch (_) {}
   startIntro(false);
 });
+
+/* ================= feed del home: como Cosmos, cuadrados que se expanden para todos lados ================= */
+(function feed() {
+  const box = $('#feed'); if (!box) return;
+  const GAP = 16;
+  let COL = 0, W = 0;
+  const sizeCols = () => { const w = box.clientWidth; const n = w < 600 ? 2.3 : w < 1000 ? 4.3 : 6.3; W = Math.round((w - GAP * Math.ceil(n)) / n); COL = W + GAP; };
+  sizeCols();
+  const hash = (a, b) => { let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x632be5ab, 0xc2b2ae35); h ^= h >>> 15; h = Math.imul(h, 0x27d4eb2f); return (h ^ (h >>> 13)) >>> 0; };
+  const RATIOS = [1, 1.25, .8, 1.4, 1, .75, 1.2];   // proporciones: cuadrados y rectángulos, como un feed de imágenes
+  const PER = 24, cols = new Map();
+  function col(c) {
+    // cada columna repite un patrón propio de 24 piezas (con un desfasaje), así el feed es infinito hacia arriba y abajo
+    let k = cols.get(c); if (k) return k;
+    const hs = [], ys = []; let y = 0;
+    for (let j = 0; j < PER; j++) { const h = Math.round(W * RATIOS[hash(c, j) % RATIOS.length]); ys.push(y); hs.push(h); y += h + GAP; }
+    k = { hs, ys, P: y, off: -(hash(c, 999) % Math.round(W * .9)) };
+    cols.set(c, k); return k;
+  }
+  let px = 0, py = 0, vx = 0, vy = 0;
+  const live = new Map();
+  function draw() {
+    const bw = box.clientWidth, bh = box.clientHeight, seen = new Set();
+    const c0 = Math.floor(-px / COL) - 1, c1 = Math.floor((-px + bw) / COL) + 1;
+    for (let c = c0; c <= c1; c++) {
+      const k = col(c), x = c * COL + px + GAP / 2;
+      const top = -py - k.off - 400, bot = -py - k.off + bh + 400;
+      let rep = Math.floor(top / k.P);
+      for (; rep * k.P <= bot; rep++) for (let j = 0; j < PER; j++) {
+        const y0 = rep * k.P + k.ys[j]; if (y0 + k.hs[j] < top || y0 > bot) continue;
+        const id = c + ',' + (rep * PER + j); seen.add(id);
+        let el = live.get(id);
+        if (!el) { el = document.createElement('div'); el.className = 't'; el.style.width = W + 'px'; el.style.height = k.hs[j] + 'px'; box.appendChild(el); live.set(id, el); }
+        el.style.transform = `translate(${x}px,${y0 + k.off + py}px)`;
+      }
+    }
+    for (const [id, el] of live) if (!seen.has(id)) { el.remove(); live.delete(id); }
+  }
+  // arrastrar (con inercia), rueda o trackpad en cualquier dirección, flechas del teclado
+  let drag = null, raf = 0;
+  const glide = () => {
+    vx *= .94; vy *= .94; px += vx; py += vy; draw();
+    raf = Math.abs(vx) + Math.abs(vy) > .2 ? requestAnimationFrame(glide) : 0;
+  };
+  box.addEventListener('pointerdown', e => {
+    cancelAnimationFrame(raf); raf = 0; vx = vy = 0;
+    drag = { x: e.clientX, y: e.clientY, t: performance.now() }; box.setPointerCapture(e.pointerId); box.classList.add('drag');
+  });
+  box.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y, now = performance.now(), dt = Math.max(1, now - drag.t);
+    px += dx; py += dy; vx = dx / dt * 16; vy = dy / dt * 16;
+    drag = { x: e.clientX, y: e.clientY, t: now }; draw();
+  });
+  const up = () => { if (!drag) return; drag = null; box.classList.remove('drag'); if (!raf) raf = requestAnimationFrame(glide); };
+  box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
+  box.addEventListener('wheel', e => {
+    e.preventDefault(); cancelAnimationFrame(raf); raf = 0;
+    const m = e.deltaMode === 1 ? 16 : 1;
+    if (e.shiftKey && !e.deltaX) px -= e.deltaY * m; else { px -= e.deltaX * m; py -= e.deltaY * m; }
+    draw();
+  }, { passive: false });
+  addEventListener('keydown', e => {
+    if (!document.body.classList.contains('entered')) return;
+    const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key]; if (!d) return;
+    e.preventDefault(); vx = d[0] * 14; vy = d[1] * 14; if (!raf) raf = requestAnimationFrame(glide);
+  });
+  addEventListener('resize', () => { sizeCols(); cols.clear(); live.forEach(el => el.remove()); live.clear(); draw(); });
+  draw();
+})();
 })();
 </script>
 </body>

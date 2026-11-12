@@ -6,12 +6,12 @@
 <title>Mesa de trabajo · RBN</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   --tan:#FBF9ED; --k:#000; --peach:#E1895B; --green:#3A5C5B; --red:#C8372D; --brown:#937F67;
   --yellow:#FFF07D; --blue:#96C7CD; --alu:#B9BCBE; --grey:#77736a; --line:#d9d5c7;
-  --sans:'Inter',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  --sans:'Archivo',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
@@ -429,6 +429,21 @@ body.scrubbing,body.scrubbing *{cursor:ew-resize!important}
 .pbtn:first-child{background:#000;color:#fff}
 .pbtn:first-child:hover{background:#fff;color:#000}
 .pbtn:hover{background:#000;color:#fff}
+
+#projt{position:absolute;left:88px;top:16px;z-index:20;display:flex;flex-direction:column;gap:4px;max-width:min(420px,40vw);pointer-events:none}
+#projt small{font:500 9.5px/1 var(--mono, 'IBM Plex Mono', monospace);letter-spacing:.14em;color:#555}
+#projt b{font:700 15px/1.25 Archivo,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tray{position:absolute;right:18px;top:74px;z-index:21;width:260px;max-height:55vh;overflow:auto;background:#FBF9ED;border:1.5px solid #000}
+#tray .th{display:flex;flex-direction:column;gap:4px;padding:10px 12px;background:#000;color:#fff}
+#tray .th span{font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.14em}
+#tray .th small{font:500 11px Archivo,sans-serif;color:#ccc}
+.ti{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-bottom:1px solid #d4d0c4;background:#fff;cursor:grab;user-select:none;touch-action:none}
+.ti:hover{background:#E1895B}
+.ti i{width:10px;height:10px;border:1.2px solid #000;flex:none;margin-top:4px}
+.ti b{display:block;font:600 13px/1.3 Archivo,sans-serif}
+.ti small{display:block;margin-top:4px;font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#555}
+.ti.out{opacity:.35}
+.tdrag{position:fixed;z-index:999;width:240px;border:1.5px solid #000;pointer-events:none;box-shadow:6px 6px 0 #000;transform:rotate(-2deg)}
 </style>
 </head>
 <body>
@@ -449,7 +464,7 @@ body.scrubbing,body.scrubbing *{cursor:ew-resize!important}
       <button class="zb" id="zpct" title="Volver a 100%">100%</button>
       <button class="zb" id="zin" title="Acercar (Ctrl/⌘ +)">+</button>
     </div>
-    <a id="brandbtn" href="index.html?home" aria-label="RBN · volver al inicio" title="Volver al inicio"></a>
+    <div id="projt"></div><div id="tray" hidden></div><a id="brandbtn" href="index.html?home" aria-label="RBN · volver al inicio" title="Volver al inicio"></a>
     <button class="zb" id="zhome">Volver a la pregunta</button>
 
     <div id="toolbar"></div>
@@ -504,10 +519,10 @@ const stage = $('#stage'), vp = $('#viewport'), world = $('#world'), secL = $('#
 
 /* ================= datos fijos ================= */
 const ACC = {
-  digital:     { label: 'DIGITAL',         c: '#96C7CD', btns: ['Abrir digital', 'Pedir en sala'] },
-  sala:        { label: 'EN SALA · PAPEL', c: '#FFF07D', btns: ['Pedir en sala', 'Ver ubicación'] },
-  restringido: { label: 'RESTRINGIDO',     c: '#B9BCBE', btns: ['Pedir credencial'] },
-  externo:     { label: 'EXTERNO',         c: '#937F67', btns: ['Ver dónde está'] },
+  digital:     { label: 'ONLINE',         c: '#96C7CD', btns: ['Abrir digital', 'Pedir en sala'] },
+  sala:        { label: 'EN SALA DE LECTURA', c: '#FFF07D', btns: ['Pedir en sala', 'Ver ubicación'] },
+  restringido: { label: 'CON AUTORIZACIÓN',     c: '#B9BCBE', btns: ['Pedir credencial'] },
+  externo:     { label: 'EN OTRA INSTITUCIÓN',         c: '#937F67', btns: ['Ver dónde está'] },
 };
 const CATALOG = [
   { title: 'Planos del concurso, 1962', tipo: 'Plano', access: 'sala', area: '', donde: 'Sala del Tesoro', formato: 'Papel', usada: 2 },
@@ -555,7 +570,8 @@ const TOOLS = [
 const MICO = { h: '≡', q: '?', conf: '+', contra: '−', star: '★', x: '×', ctx: '', frag: '”', p: '', amp: '→', link: '↗', plain: '—', inv: '⇄' };
 
 /* ================= estado ================= */
-const KEY = 'rbn-mesa-v1';
+const QS = new URLSearchParams(location.search), PROJ = QS.get('p') || '', PROJT = QS.get('t') || '';
+const KEY = 'rbn-mesa-v1' + (PROJ ? ':' + PROJ : '');
 let state = { nodes: [], edges: [], seq: 1 };
 let view = { x: 0, y: 0, z: 1 };
 let tool = 'mover';
@@ -1988,7 +2004,7 @@ $('#biblio').addEventListener('click', () => {
   if (!chat.hidden) setTimeout(() => $('#cinput').focus(), 0);
 });
 $('#cclose').addEventListener('click', () => { chat.hidden = true; $('#biblio').classList.remove('on'); });
-const USER_NAME = 'Jacinta';   // perfil de la demo
+const USER_NAME = 'Mora';   // perfil de la demo: todo es Mora
 const hora = () => new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 function addMsg(text, who) {
   const box = $('#cmsgs'), empty = box.querySelector('.cempty'); if (empty) empty.remove();
@@ -2173,13 +2189,15 @@ stage.addEventListener('drop', e => {
 });
 
 /* ================= compartir (simulado) ================= */
-const SKEY = 'rbn-share-v1', RKEY = 'rbn-recientes-v1';
+const SKEY = 'rbn-share-v1', RKEY = 'rbn-recientes-v2';
 const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (_) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} };
-let share = lsGet(SKEY, { people: [], link: 'invitadas' });
+let share = lsGet('rbn-share-v2', { people: [
+  { name: 'Jacinta Botet', email: 'jacinta@ejemplo.com', role: 'edita' },
+  { name: 'Josefina Lawson', email: 'fini@ejemplo.com', role: 'edita' }], link: 'invitadas' });
 let recientes = lsGet(RKEY, [
-  { name: 'Mora Bradley', email: 'mora@ejemplo.com' },
-  { name: 'J. Lawson', email: 'jlawson@ejemplo.com' },
+  { name: 'Jacinta Botet', email: 'jacinta@ejemplo.com' },
+  { name: 'Josefina Lawson', email: 'fini@ejemplo.com' },
 ]);
 const AVC = ['#FFF07D', '#96C7CD', '#E1895B', '#B9BCBE', '#93C7A8'];
 const initials = p => (p.name || p.email).split(/[\s._@-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
@@ -2192,7 +2210,7 @@ function shareLink() {
 }
 function renderAvatars() {
   const ps = share.people.slice(0, 3);
-  $('#avs').innerHTML = `<div class="av" style="background:#3A5C5B;color:#fff;border-color:#3A5C5B" title="Vos">J</div>` +
+  $('#avs').innerHTML = `<div class="av" style="background:#3A5C5B;color:#fff;border-color:#3A5C5B" title="Vos · Mora Bradley">M</div>` +
     ps.map(p => `<div class="av" style="background:${avColor(p)}" title="${esc(p.name)}">${esc(initials(p))}</div>`).join('') +
     (share.people.length > 3 ? `<div class="av">+${share.people.length - 3}</div>` : '');
 }
@@ -2207,7 +2225,7 @@ function renderShare(err) {
     </div>
     ${rec.length ? `<div class="sh-sec"><div class="sh-t">RECIENTES</div><div class="sh-chips">${rec.map(r => `<button class="sh-chip" data-add="${esc(r.email)}"><span class="av" style="background:${avColor(r)}">${esc(initials(r))}</span>${esc(r.name)}</button>`).join('')}</div></div>` : ''}
     <div class="sh-sec"><div class="sh-t">QUIÉN TIENE ACCESO</div>
-      <div class="sh-row"><span class="av" style="background:#3A5C5B;color:#fff;border-color:#3A5C5B">J</span><span class="who"><b>Vos</b><small>Armaste esta mesa</small></span><span class="role">DUEÑA</span></div>
+      <div class="sh-row"><span class="av" style="background:#3A5C5B;color:#fff;border-color:#3A5C5B">M</span><span class="who"><b>Vos</b><small>Armaste esta mesa</small></span><span class="role">DUEÑA</span></div>
       ${share.people.map((p, i) => `<div class="sh-row"><span class="av" style="background:${avColor(p)}">${esc(initials(p))}</span><span class="who"><b>${esc(p.name)}</b><small>${esc(p.email)}</small>${p.pend ? '<span class="pend">INVITACIÓN ENVIADA</span>' : ''}</span>${roleSel(p.role, `data-role="${i}"`)}<button class="x" data-rm="${i}" title="Quitar">×</button></div>`).join('')}
     </div>
     <div class="sh-sec"><div class="sh-t">LINK</div>
@@ -2232,7 +2250,7 @@ function invite(raw, role) {
     share.people.push(p); added++;
     recientes = [{ name: p.name, email: em }, ...recientes.filter(r => r.email !== em)].slice(0, 12);
   });
-  lsSet(SKEY, share); lsSet(RKEY, recientes);
+  lsSet('rbn-share-v2', share); lsSet(RKEY, recientes);
   renderShare();
   toast(added ? (added === 1 ? `Invitación enviada a ${mails[0]} (simulado)` : `${added} invitaciones enviadas (simulado)`) : 'Ya tenían acceso');
 }
@@ -2251,11 +2269,11 @@ $('#share').addEventListener('click', e => {
   if (b.dataset.sh === 'invite') return invite($('#shmail').value, $('#shrole').value);
   if (b.dataset.sh === 'copy') { copyText(shareLink()); return toast('Link copiado'); }
   if (b.dataset.add) { const r = recientes.find(x => x.email === b.dataset.add); return invite(r.email, $('#shrole').value); }
-  if (b.dataset.rm) { const p = share.people.splice(+b.dataset.rm, 1)[0]; lsSet(SKEY, share); renderShare(); toast(`${p.name} ya no tiene acceso`); }
+  if (b.dataset.rm) { const p = share.people.splice(+b.dataset.rm, 1)[0]; lsSet('rbn-share-v2', share); renderShare(); toast(`${p.name} ya no tiene acceso`); }
 });
 $('#share').addEventListener('change', e => {
-  if (e.target.id === 'shlink') { share.link = e.target.value; lsSet(SKEY, share); toast(e.target.value === 'invitadas' ? 'Solo quienes invitaste pueden entrar' : 'Cambió el acceso por link'); }
-  if (e.target.dataset.role != null) { share.people[+e.target.dataset.role].role = e.target.value; lsSet(SKEY, share); }
+  if (e.target.id === 'shlink') { share.link = e.target.value; lsSet('rbn-share-v2', share); toast(e.target.value === 'invitadas' ? 'Solo quienes invitaste pueden entrar' : 'Cambió el acceso por link'); }
+  if (e.target.dataset.role != null) { share.people[+e.target.dataset.role].role = e.target.value; lsSet('rbn-share-v2', share); }
 });
 $('#share').addEventListener('keydown', e => {
   e.stopPropagation();
@@ -2368,11 +2386,36 @@ applyView();
 paintTools();
 if (fresh0) {
   // la Mesa te propone empezar por una pregunta: ya está puesta y lista para escribir (se edita o se borra como cualquier otra)
-  const q = createNode('pregunta');
+  const q = createNode('pregunta', PROJT && !/^nueva/.test(PROJ) ? { text: PROJT } : {});
   placeAtCenter(q); selectNode(q.id);
   requestAnimationFrame(() => { startMain(q, { fresh: true }); queueEdges(); scheduleSave(); });
 }
 window.addEventListener('resize', () => { layoutChrome(); positionOverlays(); });
+/* ---- proyecto abierto y fuentes recién sumadas desde la web ---- */
+$('#projt').innerHTML = `<small>${/^nueva/.test(PROJ) ? 'NUEVA INVESTIGACIÓN' : 'PROYECTO'}</small><b>${esc(PROJT || 'Mesa de Mora')}</b>`;
+const SKEY_S = 'rbn-sumadas';
+const sumadas = () => { try { return (JSON.parse(localStorage.getItem(SKEY_S)) || []).filter(x => !PROJ || x.p === PROJ); } catch (_) { return []; } };
+function dropSumada(it, cx, cy) {
+  commit();
+  const n = createNode('fuente', { title: it.t, access: it.acceso || 'digital', tipo: it.tipo || 'Documento', donde: it.donde || '', formato: it.formato || '', area: '', usada: 1 });
+  if (cx == null) placeAtCenter(n); else { const w = toWorld(cx, cy), sz = sizeOf(n); n.x = Math.round(w.x - sz.w / 2); n.y = Math.round(w.y - sz.h / 2); posNode(n); }
+  try { const all = JSON.parse(localStorage.getItem(SKEY_S)) || []; localStorage.setItem(SKEY_S, JSON.stringify(all.filter(x => !(x.id === it.id && x.p === it.p)))); } catch (_) {}
+  queueEdges(); scheduleSave(); renderTray(); toast('La fuente ya está en el mapa: conectala con su hipótesis');
+}
+function renderTray() {
+  const tr = $('#tray'), L = sumadas();
+  tr.hidden = !L.length; if (!L.length) { tr.innerHTML = ''; return; }
+  tr.innerHTML = `<div class="th"><span>RECIÉN SUMADAS</span><small>${L.length} · arrastralas al mapa</small></div>` + L.map((x, i) => `<div class="ti" data-i="${i}"><i style="background:${(ACC[x.acceso] || ACC.digital).c}"></i><span><b>${esc(x.t)}</b><small>${esc(x.tipo || '')} · ${esc(x.anio || '')} · ${(ACC[x.acceso] || ACC.digital).label}</small></span></div>`).join('');
+  tr.querySelectorAll('.ti').forEach(el => el.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation(); const it = L[+el.dataset.i]; let moved = false, g = null;
+    const mv = ev => { if (!moved && Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 5) return; if (!moved) { moved = true; g = el.cloneNode(true); g.className = 'ti tdrag'; document.body.appendChild(g); el.classList.add('out'); } g.style.left = ev.clientX - 20 + 'px'; g.style.top = ev.clientY - 18 + 'px'; };
+    const up = ev => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); el.classList.remove('out'); if (g) g.remove();
+      if (!moved) return dropSumada(it); if (!ev.target.closest('#tray') && ev.target.closest('#stage, #vp, #world') ) dropSumada(it, ev.clientX, ev.clientY); else if (!ev.target.closest('#tray')) dropSumada(it, ev.clientX, ev.clientY); };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up);
+  }));
+}
+renderTray();
+addEventListener('storage', e => { if (e.key === SKEY_S) renderTray(); });
 // el foco de un texto nunca debe correr la pantalla (pasa en celular)
 [stage, $('#app'), document.scrollingElement].forEach(el => el && el.addEventListener('scroll', () => { el.scrollLeft = 0; el.scrollTop = 0; }));
 window.addEventListener('scroll', () => window.scrollTo(0, 0));

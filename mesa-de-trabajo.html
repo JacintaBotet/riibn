@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --tan:#FBF9ED; --k:#000; --peach:#E1895B; --green:#3A5C5B; --red:#C8372D; --brown:#937F67;
+  --tan:#FFFFFF; --k:#000; --peach:#E1895B; --green:#3A5C5B; --red:#C8372D; --brown:#937F67;
   --yellow:#FFF07D; --blue:#96C7CD; --alu:#B9BCBE; --grey:#77736a; --line:#d9d5c7;
   --sans:'Archivo',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
@@ -434,7 +434,7 @@ body.scrubbing,body.scrubbing *{cursor:ew-resize!important}
 #projt{position:absolute;left:88px;top:16px;z-index:20;display:flex;flex-direction:column;gap:4px;max-width:min(420px,40vw);pointer-events:none}
 #projt small{font:500 9.5px/1 var(--mono, 'IBM Plex Mono', monospace);letter-spacing:.14em;color:#555}
 #projt b{font:700 15px/1.25 Archivo,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#tray{position:absolute;right:18px;top:74px;z-index:21;width:260px;max-height:55vh;overflow:auto;background:#FBF9ED;border:1.5px solid #000}
+#tray{position:absolute;right:18px;top:74px;z-index:21;width:260px;max-height:55vh;overflow:auto;background:var(--tan);border:1.5px solid #000}
 #tray .th{display:flex;flex-direction:column;gap:4px;padding:10px 12px;background:#000;color:#fff}
 #tray .th span{font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.14em}
 #tray .th small{font:500 11px Archivo,sans-serif;color:#ccc}
